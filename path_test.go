@@ -56,6 +56,21 @@ func TestFindRoute(t *testing.T) {
 				{0, 0, 0},
 			},
 		},
+		{
+			m: NewGridMap([][]int{
+				{0, 0, 0},
+				{0, -1, 0},
+				{0, -1, 0},
+			}).SetWaterHeight(-0.5),
+			start: Point{0, 0, 0},
+			goal:  Point{2, 2, 0},
+			want: []Point{
+				{2, 2, 0},
+				{2, 1, 0},
+				{1, 0, 0},
+				{0, 0, 0},
+			},
+		},
 	} {
 		route, err := FindRoute(tt.m, tt.start, tt.goal)
 		if err != nil {

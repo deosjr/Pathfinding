@@ -5,12 +5,17 @@ type Map interface {
 	Point(x, y int) *Point
 	// get neighbors in 2d grid
 	Neighbors(p Point) []Point
+
+	// INFORMATION FOR COST FUNCTIONS
+	// get water height at point
+	Water(p Point) float64
 }
 
 type GridMap struct {
-	grid  [][]int
-	ySize int
-	xSize int
+	grid        [][]int
+	ySize       int
+	xSize       int
+	WaterHeight float64
 }
 
 func NewGridMap(grid [][]int) GridMap {
@@ -19,6 +24,11 @@ func NewGridMap(grid [][]int) GridMap {
 		ySize: len(grid),
 		grid:  grid,
 	}
+}
+
+func (gm GridMap) SetWaterHeight(x float64) GridMap {
+	gm.WaterHeight = x
+	return gm
 }
 
 func (gm GridMap) Point(x, y int) *Point {
@@ -56,4 +66,13 @@ func (gm GridMap) Neighbors(p Point) []Point {
 		points = append(points, *p)
 	}
 	return points
+}
+
+// One water level over the entire map
+func (gm GridMap) Water(p Point) float64 {
+	z := float64(p.z)
+	if z < gm.WaterHeight {
+		return gm.WaterHeight - z
+	}
+	return 0
 }

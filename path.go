@@ -37,6 +37,10 @@ func FindRoute(m Map, start, goal Point) ([]Point, error) {
 
 	for pq.Len() != 0 {
 		item := heap.Pop(&pq).(*pqItem)
+		if item.fScore == math.MaxInt32 {
+			fmt.Println(item)
+			break
+		}
 		current := item.point
 		if current == goal {
 			return reconstructPath(cameFrom, current), nil
@@ -52,11 +56,13 @@ func FindRoute(m Map, start, goal Point) ([]Point, error) {
 
 			gCurrent := getScore(gScore, current)
 			gNeighbor := getScore(gScore, neighbor)
-			tentativeGscore := gCurrent + g(current, neighbor)
+			//TODO: using maxfloat64 as 'notfound' causes overflow here
+			// is there a better way to indicate actual infinity?
+			tentativeGscore := gCurrent + g(m, current, neighbor)
 			if tentativeGscore < gNeighbor {
 				cameFrom[neighbor] = current
 				gScore[neighbor] = tentativeGscore
-				fScore[neighbor] = gNeighbor + h(neighbor, goal)
+				fScore[neighbor] = tentativeGscore + h(neighbor, goal)
 			}
 
 			if !openSet[neighbor] {
@@ -82,7 +88,11 @@ func getScore(m map[Point]float64, p Point) float64 {
 }
 
 // TODO: cost function
-func g(p, q Point) float64 {
+func g(m Map, p, q Point) float64 {
+	// simple water height, should be configurable
+	if m.Water(q) > 0.2 {
+		return math.MaxInt32
+	}
 	return 0
 }
 
