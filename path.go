@@ -9,7 +9,12 @@ import (
 type Point struct {
 	x int
 	y int
-	z int
+	z float64
+}
+
+type Point2D struct {
+	x int
+	y int
 }
 
 func FindRoute(m Map, start, goal Point) ([]Point, error) {
@@ -38,7 +43,6 @@ func FindRoute(m Map, start, goal Point) ([]Point, error) {
 	for pq.Len() != 0 {
 		item := heap.Pop(&pq).(*pqItem)
 		if item.fScore == math.MaxInt32 {
-			fmt.Println(item)
 			break
 		}
 		current := item.point
@@ -89,20 +93,26 @@ func getScore(m map[Point]float64, p Point) float64 {
 
 // TODO: cost function
 func g(m Map, p, q Point) float64 {
-	// simple water height, should be configurable
-	if m.Water(q) > 0.2 {
+	cost := 0.0
+	if m.Water(q) > 0 {
 		return math.MaxInt32
 	}
-	return 0
+	slope := math.Abs(q.z-p.z) / h(p, q)
+	cost += 1000 * slope
+	return cost
 }
 
 // heuristic cost estimate function
 func h(p, q Point) float64 {
-	//euclidian distance
-	xd := float64(q.x - p.x)
-	yd := float64(q.y - p.y)
-	zd := float64(q.z - p.z)
-	return math.Sqrt(xd*xd + yd*yd + zd*zd)
+	return euclidian2d(p, q)
+}
+
+//euclidian distance in 2d
+// geodesic, 'as the crow flies'
+func euclidian2d(p, q Point) float64 {
+	dx := float64(q.x - p.x)
+	dy := float64(q.y - p.y)
+	return math.Sqrt(dx*dx + dy*dy)
 }
 
 func reconstructPath(m map[Point]Point, current Point) []Point {
