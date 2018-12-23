@@ -6,117 +6,86 @@ import (
 	"math"
 )
 
-type Point struct {
-	x int
-	y int
-	z float64
-}
+type Node interface{}
 
-type Point2D struct {
-	x int
-	y int
-}
-
-func FindRoute(m Map, start, goal Point) ([]Point, error) {
-	openSet := map[Point]bool{
+func FindRoute(m Map, start, goal Node) ([]Node, error) {
+	openSet := map[Node]bool{
 		start: true,
 	}
-	closedSet := map[Point]bool{}
+	// closedSet := map[Node]bool{}
 
-	cameFrom := map[Point]Point{}
+	cameFrom := map[Node]Node{}
 
-	gScore := map[Point]float64{}
+	gScore := map[Node]float64{}
 	gScore[start] = 0
 
-	fScore := map[Point]float64{}
-	fScore[start] = h(start, goal)
+	fScore := map[Node]float64{}
+	fScore[start] = m.H(start, goal)
 
 	pq := priorityQueue{
 		&pqItem{
-			point:  start,
+			node:   start,
 			fScore: fScore[start],
 			index:  0,
 		},
 	}
 	heap.Init(&pq)
 
+	// use goalScore when you want to be able to revisit goal
+	// instead of returning the first path found
+	goalScore := float64(math.MaxInt64)
+
 	for pq.Len() != 0 {
 		item := heap.Pop(&pq).(*pqItem)
 		if item.fScore == math.MaxInt32 {
 			break
 		}
-		current := item.point
+		current := item.node
 		if current == goal {
-			return reconstructPath(cameFrom, current), nil
+			goalScore = gScore[current]
+			// return reconstructPath(cameFrom, current), nil
 		}
 
-		// note: nodes can never be revisited atm
-		closedSet[current] = true
+		// note: nodes can never be revisited if closedSet is used
+		// closedSet[current] = true
+		delete(openSet, current)
 
-		for _, neighbor := range m.Neighbors(current) {
-			if closedSet[neighbor] {
-				continue
-			}
+		for _, n := range m.Neighbours(current) {
+			// if closedSet[n] {
+			// 	continue
+			// }
+			tentativeGscore := gScore[current] + m.G(current, n)
+			f := tentativeGscore + m.H(n, goal)
 
-			gCurrent := getScore(gScore, current)
-			gNeighbor := getScore(gScore, neighbor)
-			//TODO: using maxfloat64 as 'notfound' causes overflow here
-			// is there a better way to indicate actual infinity?
-			tentativeGscore := gCurrent + g(m, current, neighbor)
-			if tentativeGscore < gNeighbor {
-				cameFrom[neighbor] = current
-				gScore[neighbor] = tentativeGscore
-				fScore[neighbor] = tentativeGscore + h(neighbor, goal)
-			}
-
-			if !openSet[neighbor] {
-				openSet[neighbor] = true
+			v, ok := fScore[n]
+			// only add to openSet if
+			// - not in openSet yet
+			// - has never been explored before or if it has, f < previous f score
+			// - if goal has been found, only explore nodes for which f < current goal score
+			if !openSet[n] && (!ok || f < v) && f < goalScore {
+				openSet[n] = true
 				item := &pqItem{
-					point:  neighbor,
-					fScore: getScore(fScore, neighbor),
+					node:   n,
+					fScore: f,
 				}
 				heap.Push(&pq, item)
+			} else if tentativeGscore >= gScore[n] {
+				continue
 			}
+			cameFrom[n] = current
+			gScore[n] = tentativeGscore
+			fScore[n] = f
 		}
 	}
 
-	return nil, fmt.Errorf("No path found")
-}
-
-func getScore(m map[Point]float64, p Point) float64 {
-	x, ok := m[p]
-	if !ok {
-		return math.MaxInt32
+	if goalScore == math.MaxInt64 {
+		return nil, fmt.Errorf("No path found")
 	}
-	return x
+	return reconstructPath(cameFrom, goal), nil
 }
 
-// TODO: cost function
-func g(m Map, p, q Point) float64 {
-	cost := 0.0
-	if m.Water(q) > 0 {
-		return math.MaxInt32
-	}
-	slope := math.Abs(q.z-p.z) / h(p, q)
-	cost += 1000 * slope
-	return cost
-}
-
-// heuristic cost estimate function
-func h(p, q Point) float64 {
-	return euclidian2d(p, q)
-}
-
-//euclidian distance in 2d
-// geodesic, 'as the crow flies'
-func euclidian2d(p, q Point) float64 {
-	dx := float64(q.x - p.x)
-	dy := float64(q.y - p.y)
-	return math.Sqrt(dx*dx + dy*dy)
-}
-
-func reconstructPath(m map[Point]Point, current Point) []Point {
-	path := []Point{current}
+func reconstructPath(m map[Node]Node, current Node) []Node {
+	path := []Node{current}
 	for {
 		prev, ok := m[current]
 		if !ok {
@@ -129,7 +98,7 @@ func reconstructPath(m map[Point]Point, current Point) []Point {
 }
 
 type pqItem struct {
-	point  Point
+	node   Node
 	fScore float64
 	index  int
 }
@@ -162,4 +131,16 @@ func (pq *priorityQueue) Pop() interface{} {
 	item.index = -1
 	*pq = old[0 : n-1]
 	return item
+}
+
+func main() {
+	grid := make([][]float64, 1000)
+	for i := 0; i < 1000; i++ {
+		grid[i] = make([]float64, 1000)
+	}
+	m := NewGridMap(grid).WithPerlinNoise().SetWaterHeight(0.02)
+	start, _ := m.point(point2D{0, 0})
+	goal, _ := m.point(point2D{999, 999})
+	route, _ := FindRoute(m, start, goal)
+	m.Print(route)
 }
