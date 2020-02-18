@@ -72,29 +72,51 @@ func (gm GridMap) Neighbours(n Node) []Node {
 	p := n.(point)
 	x, y := p.x, p.y
 	points := []Node{}
-	if p, ok := gm.point(point2D{x - 1, y}); ok {
-		points = append(points, p)
+	points2d := []point2D{
+		// cardinal directions
+		{x - 1, y},
+		{x, y - 1},
+		{x, y + 1},
+		{x + 1, y},
+
+		// Mask M1
+		{x - 1, y - 1},
+		{x - 1, y + 1},
+		{x + 1, y - 1},
+		{x + 1, y + 1},
+
+		// Mask M2
+		{x + 1, y + 2},
+		{x + 2, y + 1},
+		{x + 2, y - 1},
+		{x + 1, y - 2},
+		{x - 1, y - 2},
+		{x - 2, y - 1},
+		{x - 2, y + 1},
+		{x - 1, y + 2},
+
+		// Mask M3
+		{x + 1, y + 3},
+		{x + 2, y + 3},
+		{x + 3, y + 2},
+		{x + 3, y + 1},
+		{x + 3, y - 1},
+		{x + 3, y - 2},
+		{x + 2, y - 3},
+		{x + 1, y - 3},
+		{x - 1, y - 3},
+		{x - 2, y - 3},
+		{x - 3, y - 2},
+		{x - 3, y - 1},
+		{x - 3, y + 1},
+		{x - 3, y + 2},
+		{x - 2, y + 3},
+		{x - 1, y + 3},
 	}
-	if p, ok := gm.point(point2D{x - 1, y - 1}); ok {
-		points = append(points, p)
-	}
-	if p, ok := gm.point(point2D{x - 1, y + 1}); ok {
-		points = append(points, p)
-	}
-	if p, ok := gm.point(point2D{x, y - 1}); ok {
-		points = append(points, p)
-	}
-	if p, ok := gm.point(point2D{x, y + 1}); ok {
-		points = append(points, p)
-	}
-	if p, ok := gm.point(point2D{x + 1, y - 1}); ok {
-		points = append(points, p)
-	}
-	if p, ok := gm.point(point2D{x + 1, y}); ok {
-		points = append(points, p)
-	}
-	if p, ok := gm.point(point2D{x + 1, y + 1}); ok {
-		points = append(points, p)
+	for _, p2d := range points2d {
+		if p, ok := gm.point(p2d); ok {
+			points = append(points, p)
+		}
 	}
 	return points
 }
