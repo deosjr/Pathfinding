@@ -6,6 +6,20 @@ import (
 	"math"
 )
 
+type Map interface {
+	// get neighbours for a node
+	Neighbours(n Node) []Node
+
+	// cost of the path from start to node n
+	// G() only returns the cost of moving from n to
+	// one of its neighbours
+	G(n, neighbour Node) float64
+
+	// heuristic cost estimate function:
+	// cost of cheapest path from n to goal
+	H(n, goal Node) float64
+}
+
 type Node interface{}
 
 func FindRoute(m Map, start, goal Node) ([]Node, error) {
@@ -131,16 +145,4 @@ func (pq *priorityQueue) Pop() interface{} {
 	item.index = -1
 	*pq = old[0 : n-1]
 	return item
-}
-
-func main() {
-	grid := make([][]float64, 1000)
-	for i := 0; i < 1000; i++ {
-		grid[i] = make([]float64, 1000)
-	}
-	m := NewGridMap(grid).WithPerlinNoise().SetWaterHeight(0.02)
-	start, _ := m.point(point2D{0, 0})
-	goal, _ := m.point(point2D{999, 999})
-	route, _ := FindRoute(m, start, goal)
-	m.Print(route)
 }

@@ -17,19 +17,6 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-type Map interface {
-	// get neighbours for a node
-	Neighbours(n Node) []Node
-
-	// cost of the path from start to node n
-	// G() only returns the cost of moving from n to
-	// one of its neighbours
-	G(n, neighbour Node) float64
-
-	// heuristic cost estimate function:
-	// cost of cheapest path from n to goal
-	H(n, goal Node) float64
-}
 
 type GridMap struct {
 	grid        [][]float64
@@ -128,8 +115,9 @@ func (m GridMap) G(pn, qn Node) float64 {
 	if m.Water(q) > 0 {
 		return math.MaxInt32
 	}
-	slope := math.Abs(q.z-p.z) / m.H(p, q)
-	cost += 1000 * slope
+    cost += m.H(p, q)
+	slope := math.Abs(q.z-p.z)
+	cost += slope
 	return cost
 }
 
@@ -162,20 +150,21 @@ func (gm GridMap) Water(p point) float64 {
 
 func (gm GridMap) WithPerlinNoise() GridMap {
 	// alpha, beta, n iterations, random seed
-	p := perlin.NewPerlin(2, 2, 3, rand.Int63())
+	p := perlin.NewPerlin(2, 4, 3, rand.Int63())
 	for y, row := range gm.grid {
 		for x, _ := range row {
 			nx := float64(x)/float64(gm.xSize) - 0.5
 			ny := float64(y)/float64(gm.ySize) - 0.5
-			noise := 0.5 * p.Noise2D(nx, ny)
-			noise += 0.7 * p.Noise2D(2*nx, 2*ny)
+			noise := 0.3 * p.Noise2D(nx, ny)
+			noise += 0.8 * p.Noise2D(2*nx, 2*ny)
 			noise += 0.25 * p.Noise2D(4*nx, 4*ny)
 			noise += 0.15 * p.Noise2D(8*nx, 8*ny)
 			// normalize
-			noise = noise / (0.5 + 0.7 + 0.25 + 0.15)
+			noise = noise / (0.3 + 0.8 + 0.25 + 0.15)
 			// map from [-1,1] to [0,1]
 			noise = (noise + 1) / 2
-			noise = math.Pow(noise, 3.75)
+			//noise = math.Pow(noise, 3.75)
+			noise = math.Pow(noise, 3.5)
 			gm.grid[y][x] = noise
 		}
 	}
@@ -192,7 +181,7 @@ func (gm GridMap) Print(route []Node) {
 			}
 			pcc := uint8(pc * 255)
 			c := color.RGBA{pcc, pcc, pcc, 255}
-			if pc < 0.02 {
+			if pc < 0.05 {
 				c = color.RGBA{0, 0, 255, 255}
 			}
 			m.Set(x, y, c)
@@ -212,4 +201,16 @@ func (gm GridMap) Print(route []Node) {
 	}
 	defer f.Close()
 	png.Encode(f, m)
+}
+
+func main() {
+	grid := make([][]float64, 1000)
+	for i := 0; i < 1000; i++ {
+		grid[i] = make([]float64, 1000)
+	}
+	m := NewGridMap(grid).WithPerlinNoise().SetWaterHeight(0.05)
+	start, _ := m.point(point2D{0, 0})
+	goal, _ := m.point(point2D{999, 999})
+	route, _ := FindRoute(m, start, goal)
+	m.Print(route)
 }
