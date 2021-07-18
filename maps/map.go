@@ -1,4 +1,4 @@
-package main
+package maps
 
 import (
 	"fmt"
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	perlin "github.com/aquilax/go-perlin"
+    "github.com/deosjr/Pathfinding/path"
 )
 
 func init() {
@@ -43,22 +44,26 @@ type point2D struct {
 	x, y int
 }
 
+func NewPoint2D(x, y int) point2D {
+    return point2D{x, y}
+}
+
 func (gm GridMap) SetWaterHeight(x float64) GridMap {
 	gm.waterHeight = x
 	return gm
 }
 
-func (gm GridMap) point(p point2D) (point, bool) {
+func (gm GridMap) Point(p point2D) (point, bool) {
 	if p.x < 0 || p.x > gm.xSize-1 || p.y < 0 || p.y > gm.ySize-1 {
 		return point{}, false
 	}
 	return point{p.x, p.y, gm.grid[p.y][p.x]}, true
 }
 
-func (gm GridMap) Neighbours(n Node) []Node {
+func (gm GridMap) Neighbours(n path.Node) []path.Node {
 	p := n.(point)
 	x, y := p.x, p.y
-	points := []Node{}
+	points := []path.Node{}
 	points2d := []point2D{
 		// cardinal directions
 		{x - 1, y},
@@ -101,7 +106,7 @@ func (gm GridMap) Neighbours(n Node) []Node {
 		{x - 1, y + 3},
 	}
 	for _, p2d := range points2d {
-		if p, ok := gm.point(p2d); ok {
+		if p, ok := gm.Point(p2d); ok {
 			points = append(points, p)
 		}
 	}
@@ -109,7 +114,7 @@ func (gm GridMap) Neighbours(n Node) []Node {
 }
 
 // TODO: cost function
-func (m GridMap) G(pn, qn Node) float64 {
+func (m GridMap) G(pn, qn path.Node) float64 {
 	p, q := pn.(point), qn.(point)
 	cost := 0.0
 	if m.Water(q) > 0 {
@@ -121,7 +126,7 @@ func (m GridMap) G(pn, qn Node) float64 {
 	return cost
 }
 
-func (m GridMap) H(pn, qn Node) float64 {
+func (m GridMap) H(pn, qn path.Node) float64 {
 	p, q := pn.(point), qn.(point)
 	return euclidian2d(p, q)
 }
@@ -171,7 +176,7 @@ func (gm GridMap) WithPerlinNoise() GridMap {
 	return gm
 }
 
-func (gm GridMap) Print(route []Node) {
+func (gm GridMap) Print(route []path.Node) {
 	m := image.NewRGBA(image.Rect(0, 0, gm.xSize, gm.ySize))
 	for x := 0; x < gm.xSize; x++ {
 		for y := 0; y < gm.ySize; y++ {
@@ -203,14 +208,3 @@ func (gm GridMap) Print(route []Node) {
 	png.Encode(f, m)
 }
 
-func main() {
-	grid := make([][]float64, 1000)
-	for i := 0; i < 1000; i++ {
-		grid[i] = make([]float64, 1000)
-	}
-	m := NewGridMap(grid).WithPerlinNoise().SetWaterHeight(0.05)
-	start, _ := m.point(point2D{0, 0})
-	goal, _ := m.point(point2D{999, 999})
-	route, _ := FindRoute(m, start, goal)
-	m.Print(route)
-}
