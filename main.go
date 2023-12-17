@@ -13,6 +13,6 @@ func main() {
 	m := maps.NewGridMap(grid).WithPerlinNoise().SetWaterHeight(0.05)
 	start, _ := m.Point(maps.NewPoint2D(0, 0))
 	goal, _ := m.Point(maps.NewPoint2D(999, 999))
-	route, _ := path.FindRoute(m, start, goal)
+	route, _ := path.FindRoute[maps.Point](m, start, goal)
 	m.Print(route)
 }

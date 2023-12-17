@@ -11,7 +11,6 @@ import (
 	"time"
 
 	perlin "github.com/aquilax/go-perlin"
-    "github.com/deosjr/Pathfinding/path"
 )
 
 func init() {
@@ -35,17 +34,17 @@ func NewGridMap(grid [][]float64) GridMap {
 	}
 }
 
-type point struct {
+type Point struct {
 	x, y int
 	z    float64
 }
 
-type point2D struct {
+type Point2D struct {
 	x, y int
 }
 
-func NewPoint2D(x, y int) point2D {
-    return point2D{x, y}
+func NewPoint2D(x, y int) Point2D {
+    return Point2D{x, y}
 }
 
 func (gm GridMap) SetWaterHeight(x float64) GridMap {
@@ -53,18 +52,17 @@ func (gm GridMap) SetWaterHeight(x float64) GridMap {
 	return gm
 }
 
-func (gm GridMap) Point(p point2D) (point, bool) {
+func (gm GridMap) Point(p Point2D) (Point, bool) {
 	if p.x < 0 || p.x > gm.xSize-1 || p.y < 0 || p.y > gm.ySize-1 {
-		return point{}, false
+		return Point{}, false
 	}
-	return point{p.x, p.y, gm.grid[p.y][p.x]}, true
+	return Point{p.x, p.y, gm.grid[p.y][p.x]}, true
 }
 
-func (gm GridMap) Neighbours(n path.Node) []path.Node {
-	p := n.(point)
+func (gm GridMap) Neighbours(p Point) []Point {
 	x, y := p.x, p.y
-	points := []path.Node{}
-	points2d := []point2D{
+	Points := []Point{}
+	Points2d := []Point2D{
 		// cardinal directions
 		{x - 1, y},
 		{x, y - 1},
@@ -105,17 +103,16 @@ func (gm GridMap) Neighbours(n path.Node) []path.Node {
 		{x - 2, y + 3},
 		{x - 1, y + 3},
 	}
-	for _, p2d := range points2d {
+	for _, p2d := range Points2d {
 		if p, ok := gm.Point(p2d); ok {
-			points = append(points, p)
+			Points = append(Points, p)
 		}
 	}
-	return points
+	return Points
 }
 
 // TODO: cost function
-func (m GridMap) G(pn, qn path.Node) float64 {
-	p, q := pn.(point), qn.(point)
+func (m GridMap) G(p, q Point) float64 {
 	cost := 0.0
 	if m.Water(q) > 0 {
 		return math.MaxInt32
@@ -126,23 +123,22 @@ func (m GridMap) G(pn, qn path.Node) float64 {
 	return cost
 }
 
-func (m GridMap) H(pn, qn path.Node) float64 {
-	p, q := pn.(point), qn.(point)
+func (m GridMap) H(p, q Point) float64 {
 	return euclidian2d(p, q)
 }
 
 // euclidian distance in 2d
 // geodesic, 'as the crow flies'
-func euclidian2d(p, q point) float64 {
+func euclidian2d(p, q Point) float64 {
 	dx := float64(q.x - p.x)
 	dy := float64(q.y - p.y)
 	return math.Sqrt(dx*dx + dy*dy)
 }
 
 // INFORMATION FOR COST FUNCTIONS
-// get water height at point
+// get water height at Point
 // One water level over the entire map
-func (gm GridMap) Water(p point) float64 {
+func (gm GridMap) Water(p Point) float64 {
 	if gm.waterHeight == math.MinInt64 {
 		return 0
 	}
@@ -176,7 +172,7 @@ func (gm GridMap) WithPerlinNoise() GridMap {
 	return gm
 }
 
-func (gm GridMap) Print(route []path.Node) {
+func (gm GridMap) Print(route []Point) {
 	m := image.NewRGBA(image.Rect(0, 0, gm.xSize, gm.ySize))
 	for x := 0; x < gm.xSize; x++ {
 		for y := 0; y < gm.ySize; y++ {
@@ -194,8 +190,7 @@ func (gm GridMap) Print(route []path.Node) {
 	}
 
 	red := color.RGBA{255, 0, 0, 255}
-	for _, v := range route {
-		p := v.(point)
+	for _, p := range route {
 		m.Set(p.x, p.y, red)
 	}
 

@@ -6,7 +6,7 @@ import (
 	"math"
 )
 
-type Map interface {
+type Map[Node comparable] interface {
 	// get neighbours for a node
 	Neighbours(n Node) []Node
 
@@ -20,9 +20,13 @@ type Map interface {
 	H(n, goal Node) float64
 }
 
-type Node interface{}
+func FindRoute[Node comparable](m Map[Node], start, goal Node) ([]Node, error) {
+    return FindRouteWithGoalFunc(m, start, goal, func(c, g Node) bool {
+        return c == g
+    })
+}
 
-func FindRoute(m Map, start, goal Node) ([]Node, error) {
+func FindRouteWithGoalFunc[Node comparable](m Map[Node], start, goal Node, goalFunc func(c, g Node) bool) ([]Node, error) {
 	openSet := map[Node]bool{
 		start: true,
 	}
@@ -54,8 +58,8 @@ func FindRoute(m Map, start, goal Node) ([]Node, error) {
 		if item.fScore == math.MaxInt32 {
 			break
 		}
-		current := item.node
-		if current == goal {
+		current := item.node.(Node)
+		if goalFunc(current, goal) {
 			goalScore = gScore[current]
 			// return reconstructPath(cameFrom, current), nil
 		}
@@ -98,7 +102,7 @@ func FindRoute(m Map, start, goal Node) ([]Node, error) {
 	return reconstructPath(cameFrom, goal), nil
 }
 
-func reconstructPath(m map[Node]Node, current Node) []Node {
+func reconstructPath[Node comparable](m map[Node]Node, current Node) []Node {
 	path := []Node{current}
 	for {
 		prev, ok := m[current]
@@ -112,7 +116,7 @@ func reconstructPath(m map[Node]Node, current Node) []Node {
 }
 
 type pqItem struct {
-	node   Node
+	node   any
 	fScore float64
 	index  int
 }
