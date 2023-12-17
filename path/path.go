@@ -33,6 +33,7 @@ func FindRouteWithGoalFunc[Node comparable](m Map[Node], start, goal Node, goalF
 	// closedSet := map[Node]bool{}
 
 	cameFrom := map[Node]Node{}
+    var prevToGoal Node
 
 	gScore := map[Node]float64{}
 	gScore[start] = 0
@@ -59,10 +60,6 @@ func FindRouteWithGoalFunc[Node comparable](m Map[Node], start, goal Node, goalF
 			break
 		}
 		current := item.node.(Node)
-		if goalFunc(current, goal) {
-			goalScore = gScore[current]
-			// return reconstructPath(cameFrom, current), nil
-		}
 
 		// note: nodes can never be revisited if closedSet is used
 		// closedSet[current] = true
@@ -90,6 +87,11 @@ func FindRouteWithGoalFunc[Node comparable](m Map[Node], start, goal Node, goalF
 			} else if tentativeGscore >= gScore[n] {
 				continue
 			}
+		    if goalFunc(n, goal) {
+			    goalScore = gScore[current]
+                prevToGoal = n
+			    // return reconstructPath(cameFrom, current), nil
+		    }
 			cameFrom[n] = current
 			gScore[n] = tentativeGscore
 			fScore[n] = f
@@ -99,11 +101,12 @@ func FindRouteWithGoalFunc[Node comparable](m Map[Node], start, goal Node, goalF
 	if goalScore == math.MaxInt64 {
 		return nil, fmt.Errorf("No path found")
 	}
-	return reconstructPath(cameFrom, goal), nil
+	return reconstructPath(cameFrom, prevToGoal, goal), nil
 }
 
-func reconstructPath[Node comparable](m map[Node]Node, current Node) []Node {
-	path := []Node{current}
+func reconstructPath[Node comparable](m map[Node]Node, prevToGoal, goal Node) []Node {
+    current := prevToGoal
+	path := []Node{goal, prevToGoal}
 	for {
 		prev, ok := m[current]
 		if !ok {
